@@ -6,15 +6,31 @@ from ament_index_python.packages import get_package_share_directory
 from pathlib import Path
 
 def generate_launch_description():
+
+    # Default parameter file path
+    default_param_file = Path(
+        get_package_share_directory('ntrip'),
+        'config',
+        'ntrip-param.yaml'
+    )
+
     # Declare the log level argument
-    log_level = DeclareLaunchArgument(
+    log_level_arg = DeclareLaunchArgument(
         'log_level',
         default_value='info',
         description='Logging level (debug, info, warn, error, fatal)',
         choices=['debug', 'info', 'warn', 'error', 'fatal']
     )
-    
-    parameters_file_path = Path(get_package_share_directory('ntrip'), 'config', 'ntrip-param.yaml')
+
+    # Declare parameter file argument
+    param_file_arg = DeclareLaunchArgument(
+        'param_file',
+        default_value=str(default_param_file),
+        description='Path to the ntrip parameter file'
+    )
+
+    log_level = LaunchConfiguration('log_level')
+    param_file = LaunchConfiguration('param_file')
 
     # Create the node configuration
     ntrip_node = Node(
@@ -22,17 +38,16 @@ def generate_launch_description():
         executable='ntrip',
         name='ntrip_client',
         output='screen',
-        parameters=[parameters_file_path],
-        # Topic Remapping
+        parameters=[param_file],
         remappings=[
-            ('nmea', 'nmea'),  # Input NMEA topic
-            ('rtcm', 'rtcm')   # Output RTCM topic
+            ('nmea', 'nmea'),
+            ('rtcm', 'rtcm')
         ],
-        # Add arguments for log level
-        arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')]
+        arguments=['--ros-args', '--log-level', log_level]
     )
 
     return LaunchDescription([
-        log_level,  # Include the log level argument
-        ntrip_node  # Include the node configuration
+        log_level_arg,
+        param_file_arg,
+        ntrip_node
     ])
